@@ -89,8 +89,7 @@ class LambdaOverlapAdd(torch.nn.Module):
         batch, channels, n_frames = x.size()
         # Overlap and add:
         # [batch, chans, n_frames] -> [batch, chans, win_size, n_chunks]
-        unfolded = torch.nn.functional.unfold(
-            x.unsqueeze(-1),
+        unfolded = x.unsqueeze(-1).unfold(
             kernel_size=(self.window_size, 1),
             padding=(self.window_size, 0),
             stride=(self.hop_size, 1),
@@ -236,14 +235,13 @@ class DualPathProcessing(nn.Module):
         batch, chan, frames = x.size()
         assert x.ndim == 3
         self.n_orig_frames = x.shape[-1]
-        unfolded = torch.nn.functional.unfold(
-            x.unsqueeze(-1),
+        x = x.unsqueeze(-1).unfold(
             kernel_size=(self.chunk_size, 1),
             padding=(self.chunk_size, 0),
             stride=(self.hop_size, 1),
         )
 
-        return unfolded.reshape(
+        return x.reshape(
             batch, chan, self.chunk_size, -1
         )  # (batch, chan, chunk_size, n_chunks)
 
@@ -269,9 +267,7 @@ class DualPathProcessing(nn.Module):
         output_size = output_size if output_size is not None else self.n_orig_frames
         # x is (batch, chan, chunk_size, n_chunks)
         batch, chan, chunk_size, n_chunks = x.size()
-        to_unfold = x.reshape(batch, chan * self.chunk_size, n_chunks)
-        x = torch.nn.functional.fold(
-            to_unfold,
+        x = x.reshape(batch, chan * self.chunk_size, n_chunks).fold(
             (output_size, 1),
             kernel_size=(self.chunk_size, 1),
             padding=(self.chunk_size, 0),
